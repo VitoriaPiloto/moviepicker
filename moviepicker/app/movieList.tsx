@@ -1,51 +1,76 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native'; // Para recarregar quando a tela ganhar foco
 
-export default function MovieList() {
+export default function MovieList({ navigation }) {
   const [movieList, setMovieList] = useState([]);
-  const router = useRouter();
 
-  useEffect(() => {
-    const fetchMovies = async () => {
-      const storedList = await AsyncStorage.getItem('@movieList');
-      setMovieList(storedList ? JSON.parse(storedList) : []);
-    };
+  // Função para recarregar a lista de filmes
+  const loadMovies = async () => {
+    const storedList = await AsyncStorage.getItem('@movieList');
+    if (storedList) {
+      setMovieList(JSON.parse(storedList));
+    }
+  };
 
-    fetchMovies();
-  }, []);
+  // Função para excluir um filme da lista
+  const handleDelete = async (movieTitle) => {
+    const updatedList = movieList.filter(item => item.title !== movieTitle);
+    await AsyncStorage.setItem('@movieList', JSON.stringify(updatedList));
+    setMovieList(updatedList);
+  };
+
+  // Usar o useFocusEffect para recarregar a lista toda vez que a tela ganhar foco
+  useFocusEffect(
+    useCallback(() => {
+      loadMovies();
+    }, [])
+  );
 
   return (
     <View style={styles.container}>
-      <FlatList
-        data={movieList}
-        keyExtractor={(item, index) => index.toString()}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.movieItem}
-            onPress={() => router.push(`movieDetails?movieTitle=${item.title}`)}
-          >
-            <Image
-              source={{ uri: `https://image.tmdb.org/t/p/w500${item.poster}` }}
-              style={styles.poster}
-            />
-            <View style={styles.textContainer}>
-              <Text style={styles.title}>{item.title}</Text>
-              <Text style={styles.rating}>Nota: {item.rating}</Text>
+        <FlatList
+          data={movieList}
+          keyExtractor={(item) => item.title}
+          renderItem={({ item }) => (
+            <View style={styles.movieItem}>
+              {item.poster && (
+                <Image
+                  source={{ uri: `https://image.tmdb.org/t/p/w500${item.poster}` }}
+                  style={styles.posterImage}
+                />
+              )}
+              <View style={styles.movieDetails}>
+                <Text style={styles.movieTitle}>{item.title}</Text>
+              </View>
+              <TouchableOpacity onPress={() => handleDelete(item.title)} style={styles.deleteButton}>
+                  <Text style={styles.deleteButtonText}>Excluir</Text>
+              </TouchableOpacity>
             </View>
-          </TouchableOpacity>
-        )}
-      />
+          )}
+        />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 10 },
-  movieItem: { flexDirection: 'row', marginBottom: 10, alignItems: 'center' },
-  poster: { width: 50, height: 75, borderRadius: 5 },
-  textContainer: { marginLeft: 10, flex: 1 },
-  title: { fontSize: 16, fontWeight: 'bold' },
-  rating: { fontSize: 14, color: '#666' },
+  container: { flex: 1, padding: 20, backgroundColor: '#fff' },
+  title: { fontSize: 20, fontWeight: 'bold', marginBottom: 20 },
+  noMovies: { fontSize: 18, textAlign: 'center', color: 'gray' },
+  movieItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#ccc' },
+  posterImage: { width: 50, height: 75, borderRadius: 5, marginRight: 15 },
+  movieDetails: { flex: 1 },
+  movieTitle: { fontSize: 18, fontWeight: 'bold' },
+  deleteButton: { backgroundColor: '#E53935', padding: 8, borderRadius: 5, marginTop: 5 },
+  deleteButtonText: { color: '#fff', fontWeight: 'bold' },
+  button: {
+    backgroundColor: '#4CAF50',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 20,
+  },
+  buttonText: { color: '#fff', fontSize: 18 },
 });
