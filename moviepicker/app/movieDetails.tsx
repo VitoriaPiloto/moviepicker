@@ -13,6 +13,7 @@ export default function MovieDetails({ route }) {
     providerIds = '',
     providerNames = '',
     providerLogos = '',
+    showAddListButton = true,
   } = route.params;
 
   const navigation = useNavigation();
@@ -53,7 +54,13 @@ export default function MovieDetails({ route }) {
         rating: movieAvarage,
         overview,
         poster,
+        ids: ids.map(i => i).join(','),
+        names: names.map(n => n).join(','),
+        logos: logos.map(l => l).join(',')
       };
+
+      console.log("IDS");
+      console.log(ids);
 
       // Verifica se o filme já está na lista
       const existingMovie = movieList.find(item => item.title === movieTitle);
@@ -75,6 +82,16 @@ export default function MovieDetails({ route }) {
     } catch (error) {
       Alert.alert('Erro', 'Não foi possível adicionar o filme à lista.');
     }
+  };
+
+  const handleRemoveToList = async (movieTitle) => {
+    const updatedList = movieList.filter((item) => item.title !== movieTitle);
+    await AsyncStorage.setItem('@movieList', JSON.stringify(updatedList));
+    setMovieList(updatedList);
+
+    navigation.navigate('MovieList');
+
+    Alert.alert('Sucesso','Filme removido da sua lista');
   };
 
   return (
@@ -106,9 +123,15 @@ export default function MovieDetails({ route }) {
       ) : (
         <Text style={styles.errorText}>Não há informações sobre streaming disponíveis.</Text>
       )}
-      <TouchableOpacity style={styles.button} onPress={handleAddToList}>
-        <Text style={styles.buttonText}>Adicionar à lista</Text>
-      </TouchableOpacity>
+      {
+        showAddListButton ? 
+        <TouchableOpacity style={styles.button} onPress={handleAddToList}>
+          <Text style={styles.buttonText}>Adicionar à lista</Text>
+        </TouchableOpacity> :
+        <TouchableOpacity style={styles.buttonRemove} onPress={() => handleRemoveToList(movieTitle)}>
+          <Text style={styles.buttonText}>Remover da lista</Text>
+        </TouchableOpacity>
+      }
     </ScrollView>
   );
 }
@@ -117,6 +140,15 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   button: {
     backgroundColor: '#4CAF50',
+    margin: 25,
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonRemove: {
+    backgroundColor: '#E53935',
     margin: 25,
     paddingVertical: 12,
     paddingHorizontal: 32,
